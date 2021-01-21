@@ -1,15 +1,31 @@
 import os
+from argparse import ArgumentParser
+from csv import DictWriter
+from pathlib import Path
+
 import ROOT
 from ROOT import *
 import copy
 import math
 from array import array
+from constants import *
 from sagi_util import *
 
 
 ######################################
 ######## Initialization
 ######################################
+
+parser = ArgumentParser()
+parser.add_argument("-o", "--output", type=str, help="Output directory")
+args = parser.parse_args()
+output_dir = args.output
+if output_dir is not None:
+    output_dir = Path(output_dir)
+
+efex_data = []
+jfex_data = []
+
 
 print("hello world")
 
@@ -33,7 +49,6 @@ calibProfile = calibFile.Get("px")
 
 # Define list of criteria to be studied, and create plot array
 myCrits = ["TAU12", "TAU12R3", "TAU12jR3", "TAU20", "TAU20R3", "TAU20jR3"]
-myPlots = histHolder(myCrits)
 
 
 # Iso Xin
@@ -156,82 +171,16 @@ myCritsForThre = [
     "nTOBTAU20jR3",
 ]
 
-run2rate = 0
-run2isorate = 0
-run2_TAU20_rate = 0
-
-nbin = raterun2clusEt12.GetXaxis().GetNbins()
-for i in range(nbin):
-    # print i, raterun2clusEt12.GetXaxis().GetBinCenter(i+1), myThreshRun2, run2rate
-    if raterun2clusEt12.GetXaxis().GetBinCenter(i + 1) > myThreshRun2:
-        run2rate = run2rate + raterun2clusEt12.GetBinContent(i + 1)
-        # run2isorate = run2isorate + raterun2isoclusEt.GetBinContent(i)
-    if raterun2clusEt12.GetXaxis().GetBinCenter(i + 1) > 20.0:
-        run2_TAU20_rate = run2_TAU20_rate + raterun2clusEt12.GetBinContent(i + 1)
-
-print("Run2 Clutering only", run2rate)
-print("Run2 with Isolation", run2isorate)
-print("Run2 TAU20 Clutering only", run2_TAU20_rate)
-
-for tobs in myCritsForThre:
-    tobshist = MinBiasRateFile.Get(tobs)
-    rate = 0
-    filled = 0
-    for i in range(nbin):
-        # print i, tobshist.GetXaxis().GetBinCenter(i+1)
-        if tobshist.GetXaxis().GetBinCenter(i + 1) > 10.0:
-            rate = rate + tobshist.GetBinContent(i + 1)
-    print("tobs rate rate/run2rate")
-    print(tobs, rate, rate / run2_TAU20_rate * 214)
-
-pTthreTAU12R3 = 0
-pTthreTAU20R3 = 0
-pTthreTAU12jR3 = 0
-pTthreTAU20jR3 = 0
-pTthreTAU12 = 0
-pTthreTAU20 = 0
-
-for tobs in myCritsForThre:
-    tobshist = MinBiasRateFile.Get(tobs)
-    rate = 0
-    PTthresholdForRun2 = 0
-    filled = 0
-    for i in range(nbin):
-        rate = rate + tobshist.GetBinContent(nbin - i - 1)
-        if (
-            rate > run2rate and filled == 0
-        ):  # if Run2eqRateOrHalfRate ==1: run2rate = run2rate/2.0
-            PTthresholdForRun2 = tobshist.GetXaxis().GetBinCenter(nbin - i - 1)
-            print("tobs ptthreshold")
-            print(tobs, PTthresholdForRun2)
-            if tobs == "nTOBTAU12R3":
-                pTthreTAU12R3 = PTthresholdForRun2
-            if tobs == "nTOBTAU20R3":
-                pTthreTAU20R3 = PTthresholdForRun2
-            if tobs == "nTOBTAU12jR3":
-                pTthreTAU12jR3 = PTthresholdForRun2
-            if tobs == "nTOBTAU20jR3":
-                pTthreTAU20jR3 = PTthresholdForRun2
-            if tobs == "nTOBTAU12":
-                pTthreTAU12 = PTthresholdForRun2
-            if tobs == "nTOBTAU20":
-                pTthreTAU20 = PTthresholdForRun2
-
-            filled = filled + 1
-
-    tobshist.Clear()
-
 ######################################
 ######## Event Loop
 ######################################
-evenum = 0
-n12 = n15 = n25 = 0
-n12j = n15j = n25j = 0
-nDR = nFull = 0
 
-for myEvt in myTree:
-    evenum = evenum + 1
+count = 0
+for evenum, myEvt in enumerate(myTree, start=1):
 
+    print(f"evenum={evenum}")
+    if evenum > MAX_EVENTS:
+        break
     # Construct a list of truth and reco
     truthTaus = []
     for i in range(myEvt.TruthTaus_ptvis.size()):
@@ -682,15 +631,6 @@ for myEvt in myTree:
                 nearestTau = candTau
                 smallestDR = myDR
 
-        if smallestDR > 0.2:
-            myPlots.fillTO("TAU12", trueTau.Pt(), 0)
-            myPlots.fillTO("TAU20", trueTau.Pt(), 0)
-
-        else:
-            myPlots.fillTO("TAU12", trueTau.Pt(), nearestTau.Pt() > pTthreTAU12 * 1000)
-            myPlots.fillTO("TAU20", trueTau.Pt(), nearestTau.Pt() > pTthreTAU20 * 1000)
-            myPlots.fillRes("TAU12", trueTau.Pt(), nearestTau.Pt())
-
         # Find nearest candidate, Run-III
         nearestTau = None
         smallestDR = 50.0
@@ -700,223 +640,52 @@ for myEvt in myTree:
                 nearestTau = candTau
                 smallestDR = myDR
 
-        # print 'myEvt:', myEvt, 'trueTau.Pt():', trueTau.Pt(), 'nearestTau.Pt():', nearestTau.Pt(), 'pTthreTAU12R3', pTthreTAU12R3
-        # if smallestDR > 0.2:
-        #    myPlots.fillTO('TAU12R3', trueTau.Pt(), 0)
-        #    myPlots.fillTO('TAU20R3', trueTau.Pt(), 0)
-        # else:
-        #    myPlots.fillTO('TAU12R3', trueTau.Pt(), nearestTau.Pt() > pTthreTAU12R3*1000 )
-        #    myPlots.fillTO('TAU20R3', trueTau.Pt(), nearestTau.Pt() > pTthreTAU20R3*1000 )
-
-        if abs(nearestTau.Eta()) > 2.47 or nearestTau.Pt() < 10000 or smallestDR > 0.2:
-            myPlots.fillTO("TAU12R3", trueTau.Pt(), 0)
-        else:
-            newDR = 10000.0  # 5.0 change
-            jcandTauPt = -99999.0
-            jcandTauIso = -99999.0
+        if abs(nearestTau.Eta()) <= 2.47 and nearestTau.Pt() >= 10000 and smallestDR <= 0.2:
+            newDR = None
+            jcandTauPt = None
+            jcandTauEta = None
+            jcandTauIso = None
             for jTau in run3jTaus:
                 if abs(jTau.Eta()) > 2.47:
                     continue
                 myDR = nearestTau.TLV.DeltaR(jTau.TLV)
-                if myDR < newDR:
+                if newDR is None or myDR < newDR:
                     newDR = myDR
                     jcandTauPt = jTau.Pt()
+                    jcandTauEta = jTau.Eta()
                     jcandTauIso = jTau.Iso
-            if nearestTau.Pt() >= 12000.0 and nearestTau.Pt() < 15000.0:
-                n12 += 1
-            elif nearestTau.Pt() >= 15000.0 and nearestTau.Pt() < 25000.0:
-                n15 += 1
-            elif nearestTau.Pt() >= 25000.0:
-                n25 += 1
-            nFull += 1
-            ejDR.Fill(newDR)  # answer Q1
-            if (
-                newDR < 10000.0 and abs(nearestTau.Eta()) < 1.37
-            ):  # abs(nearestTau.Eta())>1.52 and abs(nearestTau.Eta())<2.47: #abs(nearestTau.Eta())<1.37: # and trueTau.Pt() > 15000 and abs(trueTau.Eta())<2.47:
-                nDR += 1
-                # myPlots.fillTO('TAU12jR3', trueTau.Pt(), nearestTau.Pt() > pTthreTAU12jR3*1000 )
-                eiso.Fill(nearestTau.Iso)  # answer Q3a
-                jiso.Fill(jcandTauIso / jcandTauPt)  # answer Q3a
-                if nearestTau.Pt() >= 10000.0 and nearestTau.Pt() < 11000.0:
-                    jiso10.Fill(nearestTau.Iso)
-                elif nearestTau.Pt() >= 11000.0 and nearestTau.Pt() < 12000.0:
-                    jiso11.Fill(nearestTau.Iso)
-                elif nearestTau.Pt() >= 12000.0 and nearestTau.Pt() < 13000.0:
-                    n12j += 1
-                    eiso12.Fill(nearestTau.Iso)
-                    jiso12.Fill(nearestTau.Iso)
-                    if (jcandTauIso / jcandTauPt) < 0.3:
-                        myPlots.fillTO(
-                            "TAU12R3",
-                            trueTau.Pt(),
-                            nearestTau.Pt() > pTthreTAU12R3 * 1000,
-                        )
-                    else:
-                        myPlots.fillTO("TAU12R3", trueTau.Pt(), 0)
-                elif nearestTau.Pt() >= 13000.0 and nearestTau.Pt() < 14000.0:
-                    jiso13.Fill(nearestTau.Iso)
-                elif nearestTau.Pt() >= 14000.0 and nearestTau.Pt() < 15000.0:
-                    jiso14.Fill(nearestTau.Iso)
-                elif nearestTau.Pt() >= 15000.0 and nearestTau.Pt() < 16000.0:
-                    n15j += 1
-                    eiso15.Fill(nearestTau.Iso)
-                    jiso15.Fill(nearestTau.Iso)
-                    # if nearestTau.Iso > 0.61:
-                    #    ejiso15.Fill(jcandTauIso/jcandTauPt)
-                    if (jcandTauIso / jcandTauPt) < 0.32:
-                        myPlots.fillTO(
-                            "TAU12R3",
-                            trueTau.Pt(),
-                            nearestTau.Pt() > pTthreTAU12R3 * 1000,
-                        )
-                    else:
-                        myPlots.fillTO("TAU12R3", trueTau.Pt(), 0)
-                elif nearestTau.Pt() >= 16000.0 and nearestTau.Pt() < 17000.0:
-                    jiso16.Fill(nearestTau.Iso)
-                elif nearestTau.Pt() >= 17000.0 and nearestTau.Pt() < 18000.0:
-                    jiso17.Fill(nearestTau.Iso)
-                elif nearestTau.Pt() >= 18000.0 and nearestTau.Pt() < 19000.0:
-                    jiso18.Fill(nearestTau.Iso)
-                elif nearestTau.Pt() >= 19000.0 and nearestTau.Pt() < 20000.0:
-                    jiso19.Fill(nearestTau.Iso)
-                elif nearestTau.Pt() >= 20000.0 and nearestTau.Pt() < 21000.0:
-                    jiso20.Fill(nearestTau.Iso)
-                elif nearestTau.Pt() >= 21000.0 and nearestTau.Pt() < 22000.0:
-                    jiso21.Fill(nearestTau.Iso)
-                elif nearestTau.Pt() >= 22000.0 and nearestTau.Pt() < 23000.0:
-                    jiso22.Fill(nearestTau.Iso)
-                elif nearestTau.Pt() >= 23000.0 and nearestTau.Pt() < 24000.0:
-                    jiso23.Fill(nearestTau.Iso)
-                elif nearestTau.Pt() >= 24000.0 and nearestTau.Pt() < 25000.0:
-                    jiso24.Fill(nearestTau.Iso)
-                # elif (nearestTau.Pt()>=20000. and nearestTau.Pt()<25000.):
-                #    if (jcandTauIso/jcandTauPt) < 999: myPlots.fillTO('TAU12R3', trueTau.Pt(), nearestTau.Pt() > pTthreTAU12R3*1000 )
-                #    else: myPlots.fillTO('TAU12R3', trueTau.Pt(), 0)
-                elif nearestTau.Pt() >= 25000.0:
-                    jiso25.Fill(nearestTau.Iso)
-                    n25j += 1
-                    myPlots.fillTO(
-                        "TAU12R3", trueTau.Pt(), nearestTau.Pt() > pTthreTAU12R3 * 1000
-                    )
-            else:
-                myPlots.fillTO(
-                    "TAU12R3", trueTau.Pt(), nearestTau.Pt() > pTthreTAU12R3 * 1000
-                )  # 23/09: used to be 0 but now nearestTau.Pt() > pTthreTAU12R3*1000
+            if newDR is not None:
+                print("HERE!!!!!!!!!!!!!!!!!!!!!!!")
+                count += 1
+                efex_data.append(
+                    {
+                        PT: f"{nearestTau.Pt():.{ACCURACY}f}",
+                        ETA: f"{nearestTau.Eta():.{ACCURACY}f}",
+                        EFEX_ISO: f"{nearestTau.Iso:.{ACCURACY}f}"
+                    }
+                )
+                jfex_data.append(
+                    {
+                        PT: f"{jcandTauPt:.{ACCURACY}f}",
+                        ETA: f"{jcandTauEta:.{ACCURACY}f}",
+                        JFEX_ISO: f"{jcandTauIso:.{ACCURACY}f}"
+                    }
+                )
+        if count >= COUNT_BREAK:
+            break
 
-        # Find nearest, nearest candidate, jFEX
-        nearestTau = None
-        smallestDR = 50.0
-        for candTau in run3jTaus:
-            if abs(candTau.Eta()) > 2.47 or candTau.Pt() < 12000:
-                continue
-            myDR = trueTau.DeltaR(candTau.TLV)
-            if myDR < smallestDR:
-                nearestTau = candTau
-                smallestDR = myDR
-
-        if smallestDR > 0.2:
-            myPlots.fillTO("TAU12jR3", trueTau.Pt(), 0)
-        #    myPlots.fillTO('TAU20jR3', trueTau.Pt(), 0)
-        else:
-            myPlots.fillTO(
-                "TAU12jR3", trueTau.Pt(), nearestTau.Pt() > pTthreTAU12jR3 * 1000
-            )
-            #    myPlots.fillTO('TAU20jR3', trueTau.Pt(), nearestTau.Pt() > pTthreTAU12jR3*1000 )
-
-            if nearestTau.Pt() > 12000 and nearestTau.Pt() < 20000:
-                isoRatio.Fill(nearestTau.Iso / nearestTau.Pt())
-
-    myTAU2 = []
-    myTAU3 = []
-    myjTAU3 = []
-
-    for candTau in run2Taus:
-        if abs(candTau.Eta()) > 2.47:
-            continue
-        myTAU2 += [candTau.Pt() / 1000.0]
-
-    for candTau in run3Taus:
-        if abs(candTau.Eta()) > 2.47:
-            continue
-        myTAU3 += [candTau.Pt() / 1000.0]
-        coreRatioS2.Fill(candTau.Iso)
-
-    for candTau in run3jTaus:
-        if abs(candTau.Eta()) > 2.47:
-            continue
-        myjTAU3 += [candTau.Pt() / 1000.0]
-        coreRatioS1.Fill(candTau.Iso)
-
-        if candTau.Pt() > 12000 and candTau.Pt() < 20000:
-            fisoRatio.Fill(candTau.Iso / candTau.Pt())
-
-    myTAU2.sort(reverse=True)
-    myTAU3.sort(reverse=True)
-    myjTAU3.sort(reverse=True)
-
-    if len(myTAU2) > 0:
-        myPlots.fillTOB("TAU12", myTAU2[0])
-    if len(myTAU3) > 0:
-        myPlots.fillTOB("TAU12R3", myTAU3[0])
-    if len(myjTAU3) > 0:
-        myPlots.fillTOB("TAU12jR3", myjTAU3[0])
-
-
-# Store output files
-myNewFile = ROOT.TFile(
-    "/afs/cern.ch/user/b/barak/public/turnOnCurveRun2eqCTj_Timing_New_eFEXeiso1.37.root",
-    "RECREATE",
-)
-# myNewFile = ROOT.TFile("/afs/cern.ch/user/b/barak/public/turnOnCurveRun2eqCTj_PeakFinder_New.root", "RECREATE")
-myNewFile.cd()
-myPlots.savePlots()
-coreRatioB1.Write()
-coreRatioS1.Write()
-coreRatioB2.Write()
-coreRatioS2.Write()
-coreRatioB3.Write()
-coreRatioS3.Write()
-coreRatioB4.Write()
-coreRatioS4.Write()
-coreRatioB5.Write()
-coreRatioS5.Write()
-ETvsEta.Write()
-Oregon_ratio.Write()
-ejDR.Write()
-ejPt.Write()
-jPt.Write()
-eiso.Write()
-jiso.Write()
-eiso12.Write()
-# jiso12.Write()
-ejiso12.Write()
-eiso15.Write()
-# jiso15.Write()
-ejiso15.Write()
-jiso10.Write()
-jiso11.Write()
-jiso12.Write()
-jiso13.Write()
-jiso14.Write()
-jiso15.Write()
-jiso16.Write()
-jiso17.Write()
-jiso18.Write()
-jiso19.Write()
-jiso20.Write()
-jiso21.Write()
-jiso22.Write()
-jiso23.Write()
-jiso24.Write()
-jiso25.Write()
-
-# printing out efficiencies of matching
-print("n12", n12)  # 15680
-print("n15", n15)  # 34284
-print("n25", n25)  # 20500
-print("n12j", n12j)  # 5542
-print("n15j", n15j)  # 4666
-print("n12j/n12", n12j / n12)
-print("n15j/n15", n15j / n15)
-print("nDR", nDR)  # 70332
-print("nFull", nFull)  # 70464
+if output_dir is None:
+    for i, record in enumerate(efex_data, start=1):
+        print(f"{i}) {record}")
+else:
+    if not output_dir.exists():
+        output_dir.mkdir()
+    with open(output_dir / "efex.csv", mode="w", newline="") as fd:
+        csv_writer = DictWriter(fd, fieldnames=[PT, ETA, EFEX_ISO])
+        csv_writer.writeheader()
+        csv_writer.writerows(efex_data)
+    with open(output_dir / "jfex.csv", mode="w", newline="") as fd:
+        csv_writer = DictWriter(fd, fieldnames=[PT, ETA, JFEX_ISO])
+        csv_writer.writeheader()
+        csv_writer.writerows(jfex_data)
+    print(f"Wrote data to {output_dir}")

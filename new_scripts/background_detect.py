@@ -9,6 +9,8 @@ import math
 
 # from math import *
 from array import array
+
+from constants import *
 from sagi_util import *
 from argparse import ArgumentParser
 from csv import DictWriter
@@ -17,15 +19,6 @@ from csv import DictWriter
 ######################################
 ######## Initialization
 ######################################
-
-
-COUNT_BREAK = 100
-ACCURACY = 5
-
-PT = "pt"
-ETA = "eta"
-EFEX_ISO = "Efex_iso"
-JFEX_ISO = "Jfex_iso"
 
 parser = ArgumentParser()
 parser.add_argument("-o", "--output", type=str, help="Output directory")
@@ -162,6 +155,9 @@ nDR = nFull = 0
 count = 0
 for evenum, myEvt in enumerate(myTree, start=1):
 
+    print(f"evenum={evenum}")
+    if evenum >= MAX_EVENTS:
+        break
     # Construct a list of truth and reco
     truthTaus = []
     for i in range(myEvt.TruthTaus_ptvis.size()):
@@ -619,10 +615,6 @@ for evenum, myEvt in enumerate(myTree, start=1):
                     JFEX_ISO: f"{jcandTauIso:.{ACCURACY}f}"
                 }
             )
-        if count >= COUNT_BREAK:
-            break
-    if count >= COUNT_BREAK:
-        break
 
 if output_dir is None:
     for i, record in enumerate(efex_data, start=1):
