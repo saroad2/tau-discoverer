@@ -12,7 +12,7 @@ from myHelpers_New import *
 ######## Initialization
 ######################################
 
-print "hello world"
+print("hello world")
 
 myFile = ROOT.TFile("/afs/cern.ch/work/b/barak/public/L1CALO/phase1/tobTree.root")
 myTree = myFile.Get("tobTree")
@@ -20,7 +20,7 @@ myTree = myFile.Get("tobTree")
 from glob import glob
 fileList = glob("/afs/cern.ch/work/b/barak/public/L1CALO/phase1/user.viveiros.JZ0W.Timing_v04_OUTPUT/user.viveiros.21160992.OUTPUT._000003.root")
 #fileList = glob("/afs/cern.ch/work/b/barak/public/L1CALO/phase1/user.viveiros.JZ0W.PeakFinder_v04_OUTPUT/*")#user.viveiros.21160991.OUTPUT._000003.root")
-print fileList
+print(fileList)
 
 myTree = ROOT.TChain("ntuple")
 for myFile in fileList:
@@ -470,5 +470,5 @@ jiso23.Write()
 jiso24.Write()
 jiso25.Write()
 
-print 'nDR', nDR
-print 'nFull', nFull
+print('nDR', nDR)
+print('nFull', nFull)

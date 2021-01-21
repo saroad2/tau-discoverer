@@ -11,7 +11,7 @@ from myHelpers_New import *
 ######## Initialization
 ######################################
 
-print "hello world"
+print("hello world")
 
 myFile = ROOT.TFile("/afs/cern.ch/work/b/barak/public/L1CALO/phase1/tobTreeTau.root")
 myTree = myFile.Get("tobTree")
@@ -19,7 +19,7 @@ myTree = myFile.Get("tobTree")
 from glob import glob
 fileList = glob("/afs/cern.ch/work/b/barak/public/L1CALO/phase1/user.viveiros.Ztautau.Timing_v04_OUTPUT/*")#user.viveiros.21160996.OUTPUT._000001.root")
 #fileList = glob("/afs/cern.ch/work/b/barak/public/L1CALO/phase1/user.viveiros.Ztautau.PeakFinder_v04_OUTPUT/*")#user.viveiros.21160993.OUTPUT._000001.root")
-print fileList
+print(fileList)
 
 myTree = ROOT.TChain("ntuple")
 for myFile in fileList:
@@ -157,9 +157,9 @@ for i in range(nbin):
     if raterun2clusEt12.GetXaxis().GetBinCenter(i+1) > 20.:
         run2_TAU20_rate = run2_TAU20_rate + raterun2clusEt12.GetBinContent(i+1)
 
-print "Run2 Clutering only" , run2rate
-print "Run2 with Isolation" , run2isorate
-print "Run2 TAU20 Clutering only" , run2_TAU20_rate
+print("Run2 Clutering only" , run2rate)
+print("Run2 with Isolation" , run2isorate)
+print("Run2 TAU20 Clutering only" , run2_TAU20_rate)
 
 for tobs in myCritsForThre:
     tobshist = MinBiasRateFile.Get(tobs)
@@ -169,8 +169,8 @@ for tobs in myCritsForThre:
         #print i, tobshist.GetXaxis().GetBinCenter(i+1)
         if tobshist.GetXaxis().GetBinCenter(i+1) > 10.:
             rate = rate + tobshist.GetBinContent(i+1)
-    print "tobs rate rate/run2rate"
-    print tobs , rate , rate/run2_TAU20_rate*214
+    print("tobs rate rate/run2rate")
+    print(tobs , rate , rate/run2_TAU20_rate*214)
 
 pTthreTAU12R3 = 0
 pTthreTAU20R3 = 0
@@ -188,8 +188,8 @@ for tobs in myCritsForThre:
         rate = rate + tobshist.GetBinContent(nbin - i - 1)
         if (rate > run2rate and filled == 0):#if Run2eqRateOrHalfRate ==1: run2rate = run2rate/2.0
             PTthresholdForRun2 = tobshist.GetXaxis().GetBinCenter(nbin - i - 1)
-            print "tobs ptthreshold"
-            print tobs , PTthresholdForRun2
+            print("tobs ptthreshold")
+            print(tobs , PTthresholdForRun2)
             if tobs == "nTOBTAU12R3":
                 pTthreTAU12R3 = PTthresholdForRun2
             if tobs == "nTOBTAU20R3":
@@ -549,12 +549,12 @@ jiso24.Write()
 jiso25.Write()
 
 #printing out efficiencies of matching
-print 'n12', n12 #15680
-print 'n15', n15 #34284
-print 'n25', n25 #20500
-print 'n12j', n12j #5542
-print 'n15j', n15j #4666
-print 'n12j/n12', n12j/n12 
-print 'n15j/n15', n15j/n15
-print 'nDR', nDR #70332
-print 'nFull', nFull #70464
+print('n12', n12) #15680
+print('n15', n15) #34284
+print('n25', n25) #20500
+print('n12j', n12j) #5542
+print('n15j', n15j) #4666
+print('n12j/n12', n12j/n12) 
+print('n15j/n15', n15j/n15)
+print('nDR', nDR) #70332
+print('nFull', nFull) #70464
