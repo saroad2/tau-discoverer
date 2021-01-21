@@ -662,7 +662,7 @@ for evenum, myEvt in enumerate(myTree, start=1):
                     newDR = myDR
                     jcandTauPt = jTau.Pt()
                     jcandTauEta = jTau.Eta()
-                    jcandTauIso = jTau.Iso
+                    jcandTauIso = jTau.Iso / jcandTauPt
             if newDR is not None:
                 count += 1
                 efex_data.append(
