@@ -22,10 +22,15 @@ from csv import DictWriter
 
 parser = ArgumentParser()
 parser.add_argument("-o", "--output", type=str, help="Output directory")
+parser.add_argument("-c", "--count", nargs="?", type=int, const=COUNT_BREAK, help="Count break value")
+parser.add_argument("-e", "--events", nargs="?", type=int, const=MAX_EVENTS, help="Max events")
 args = parser.parse_args()
 output_dir = args.output
 if output_dir is not None:
     output_dir = Path(output_dir)
+
+max_count = args.count
+max_events = args.events
 
 efex_data = []
 jfex_data = []
@@ -155,8 +160,10 @@ nDR = nFull = 0
 count = 0
 for evenum, myEvt in enumerate(myTree, start=1):
 
-    print(f"evenum={evenum}")
-    if evenum >= MAX_EVENTS:
+    print(f"evenum={evenum}, count={count}")
+    if max_events is not None and evenum >= max_events:
+        break
+    if max_count is not None and count >= max_count:
         break
     # Construct a list of truth and reco
     truthTaus = []
